@@ -23,13 +23,39 @@ app.set('port', process.env.PORT || 5000);
 app.set('view engine', 'ejs');
 app.use(bodyParser.json({ verify: verifyRequestSignature }));
 app.use(express.static('public'));
+/*forecast api*/
+//var Forecast = require('forecast');
+//Initialize 
+/*var forecast = new Forecast({
+  service: 'darksky',
+  key: '5bdc63562424e57e3502a72f2c45a59c',
+  units: 'fahrenheit',
+  cache: true,      // Cache API requests 
+  ttl: {            // How long to cache requests. Uses syntax from moment.js: http://momentjs.com/docs/#/durations/creating/ 
+   minutes: 27,
+   seconds: 45
+  }
+});
+*/
+/*connect database*/
+var pg = require('pg');
 
+app.get('/db', function (request, response) {
+  pg.connect(process.env.DATABASE_URL, function(err, client, done) {
+    client.query('SELECT * FROM test_table', function(err, result) {
+      done();
+      if (err)
+       { console.error(err); response.send("Error " + err); }
+      else
+       { response.render('pages/db', {results: result.rows} ); }
+    });
+  });
+});
 /*
  * Be sure to setup your config values before running this code. You can 
  * set them using environment variables or modifying the config file in /config.
  *
  */
-
 // App Secret can be retrieved from the App Dashboard
 const APP_SECRET = (process.env.MESSENGER_APP_SECRET) ? 
   process.env.MESSENGER_APP_SECRET :
@@ -55,6 +81,16 @@ if (!(APP_SECRET && VALIDATION_TOKEN && PAGE_ACCESS_TOKEN && SERVER_URL)) {
   console.error("Missing config values");
   process.exit(1);
 }
+
+/*for weather forecast function
+*app.get('/forecast', function (req, res) {
+*    forecast.get([40.792240, -73.138260], function(err, weather) { //long Island latitude longitude
+*      if(err) return console.dir(err);
+*      console.dir(weather);
+*    });
+*    res.send('forecast');
+*});
+*/
 
 /*
  * Use your own validation token. Check that the token used in the Webhook 
@@ -275,11 +311,11 @@ function receivedMessage(event) {
         sendFileMessage(senderID);
         break;
 
-      case 'button':
+      case '맛집':
         sendButtonMessage(senderID);
         break;
 
-      case 'generic':
+      case '동아리':
         sendGenericMessage(senderID);
         break;
 
@@ -306,6 +342,14 @@ function receivedMessage(event) {
       case 'account linking':
         sendAccountLinking(senderID);
         break;
+        
+      case '택시':
+        sendTaxiButtonMessage(senderID);
+        break;
+        
+//      case 'weather':
+//    	sendWeatherMessage(senderID);
+//    	break;
 
       default:
         sendTextMessage(senderID, messageText);
@@ -449,6 +493,25 @@ function sendGifMessage(recipientId) {
 }
 
 /*
+ * send weather message using the Send API.
+ * 
+ */
+//function sendWeatherMessage(recipientId) {	
+//  forecast.get([40.792240, -73.138260], function(err,weather) {
+//    weatherText = "Today's long Island's weather is " + weather.currently.summary;
+//  });
+//  var messageData = {
+//    recipient: {
+//      id: recipientId
+//    },
+//    message: {
+//        text: weatherText 
+//    }
+//  };
+//  
+//  callSendAPI(messageData);
+//}
+/*
  * Send audio using the Send API.
  *
  */
@@ -531,7 +594,6 @@ function sendTextMessage(recipientId, messageText) {
 
   callSendAPI(messageData);
 }
-
 /*
  * Send a button message using the Send API.
  *
@@ -546,19 +608,55 @@ function sendButtonMessage(recipientId) {
         type: "template",
         payload: {
           template_type: "button",
-          text: "This is test text",
+          text: "어디 맛집?",
           buttons:[{
             type: "web_url",
-            url: "https://www.oculus.com/en-us/rift/",
-            title: "Open Web URL"
+            url: "https://www.yelp.com/search?find_loc=Stony+Brook,+NY,+US&cflt=food",
+            title: "스토니브룩 주변"
           }, {
-            type: "postback",
-            title: "Trigger Postback",
-            payload: "DEVELOPER_DEFINED_PAYLOAD"
+            type: "web_url",
+            title: "포트제퍼슨 주변",
+            url: "https://www.yelp.com/search?find_loc=Port+Jefferson,+NY,+US&cflt=food"
+          }, {
+            type: "web_url",
+            title: "노스포트 주변",
+            url: "https://www.yelp.com/search?find_loc=North+Port,+NY,+US&cflt=food"
+          }]
+        }
+      }
+    }
+  };  
+
+  callSendAPI(messageData);
+}
+
+/*
+ * Send a  taxi button message using the Send API.
+ *  한인택시 번호 추가해서 알려주기
+ */
+function sendTaxiButtonMessage(recipientId) {
+  var messageData = {
+    recipient: {
+      id: recipientId
+    },
+    message: {
+      attachment: {
+        type: "template",
+        payload: {
+          template_type: "button",
+          text: "어디로 연락할까요?",
+          buttons:[{
+            type: "phone_number",
+            payload: "+17182252222",
+            title: "KPOP 콜택시"
           }, {
             type: "phone_number",
-            title: "Call Phone Number",
-            payload: "+16505551234"
+            title: "뉴욕 천사콜택시(Angel Limo)",
+            payload: "+17188881004"
+          }, {
+        	  type: "phone_number",
+              title: "오렌지콜택시",
+              payload: "+17188880404"
           }]
         }
       }
@@ -570,7 +668,7 @@ function sendButtonMessage(recipientId) {
 
 /*
  * Send a Structured Message (Generic Message type) using the Send API.
- *
+ * 동아리 목록 보여주기
  */
 function sendGenericMessage(recipientId) {
   var messageData = {
@@ -583,33 +681,89 @@ function sendGenericMessage(recipientId) {
         payload: {
           template_type: "generic",
           elements: [{
-            title: "rift",
-            subtitle: "Next-generation virtual reality",
-            item_url: "https://www.oculus.com/en-us/rift/",               
-            image_url: SERVER_URL + "/assets/rift.png",
+            title: "축구부",
+            subtitle: "FC Stony",
+            item_url: "https://www.facebook.com/profile.php?id=100013403837407&fref=ts",               
+            image_url: SERVER_URL + "/assets/stonyFc.png",
             buttons: [{
               type: "web_url",
-              url: "https://www.oculus.com/en-us/rift/",
-              title: "Open Web URL"
+              url: "https://www.facebook.com/profile.php?id=100013403837407&fref=ts",
+              title: "페이지 가보기"
             }, {
               type: "postback",
               title: "Call Postback",
               payload: "Payload for first bubble",
             }],
           }, {
-            title: "touch",
-            subtitle: "Your Hands, Now in VR",
-            item_url: "https://www.oculus.com/en-us/touch/",               
-            image_url: SERVER_URL + "/assets/touch.png",
+            title: "야구부",
+            subtitle: "Stony Brook Red Wolves(SBU Korean Baesball Club)",
+            item_url: "https://www.facebook.com/groups/SBRedWolves/?fref=ts",               
+            image_url: SERVER_URL + "/assets/redwolves.png",
             buttons: [{
               type: "web_url",
-              url: "https://www.oculus.com/en-us/touch/",
-              title: "Open Web URL"
+              url: "https://www.facebook.com/groups/SBRedWolves/?fref=ts",
+              title: "페이지 가보기"
             }, {
               type: "postback",
               title: "Call Postback",
               payload: "Payload for second bubble",
             }]
+          }, {
+            title: "코라",
+            subtitle: "스토니브룩 라디오",
+            item_url: "https://www.facebook.com/KolaKoreanlife/?fref=ts",               
+            image_url: SERVER_URL + "/assets/kola.png",
+            buttons: [{
+              type: "web_url",
+              url: "https://www.facebook.com/KolaKoreanlife/?fref=ts",
+              title: "페이지 가보기"
+            }, {
+              type: "postback",
+              title: "Call Postback",
+              payload: "Payload for first bubble",
+            }],
+          }, {
+            title: "덩쿵",
+            subtitle: "덩덕궁이",
+            item_url: "https://www.facebook.com/stonybrook.ddky?fref=ts",               
+            image_url: SERVER_URL + "/assets/ddky.png",
+            buttons: [{
+              type: "web_url",
+              url: "https://www.facebook.com/stonybrook.ddky?fref=ts",
+              title: "페이지 가보기"
+            }, {
+              type: "postback",
+              title: "Call Postback",
+              payload: "Payload for first bubble",
+            }],
+          }, {
+            title: "검도부",
+            subtitle: "SBU Kumdo(Kendo)",
+            item_url: "https://www.facebook.com/groups/SBUKumdo/?fref=ts",               
+            image_url: SERVER_URL + "/assets/kumdo.png",
+            buttons: [{
+              type: "web_url",
+              url: "https://www.facebook.com/groups/SBUKumdo/?fref=ts",
+              title: "페이지 가보기"
+            }, {
+              type: "postback",
+              title: "Call Postback",
+              payload: "Payload for first bubble",
+            }],
+          }, {
+            title: "KISA",
+            subtitle: "SBU Korean International Student Association(KISA)",
+            item_url: "https://www.facebook.com/groups/sbukisa/?fref=ts",               
+            image_url: SERVER_URL + "/assets/kisa.png",
+            buttons: [{
+              type: "web_url",
+              url: "https://www.facebook.com/groups/sbukisa/?fref=ts",
+              title: "페이지 가보기"
+            }, {
+              type: "postback",
+              title: "Call Postback",
+              payload: "Payload for first bubble",
+            }],
           }]
         }
       }

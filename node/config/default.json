@@ -1,6 +1,6 @@
 {
-    "appSecret": "fa557c528409c18e201da19c2f8c2c24",
-    "pageAccessToken": "EAAPt6DwSusEBAJQDZCTLFCDrBYLNjVZA98plZB3yajUjgMNHClAyKAtb4CZCsGXZBDHe8RAe6AoWOHYKpX8RpqetZAikcCsxXb6qBXUZAJHHIvc70jL4ya2XUpnRbtWzidFIyN6pqoZAsXDmnBBodA8VVO8lgUXEmGcHKRe3UPHvVgZDZD",
-    "validationToken": "stonybrook-bot",
-    "serverURL": "https://stonybrook-bot.herokuapp.com/"
+    "appSecret": "83e20f6871490633fc19d25809be4678",
+    "pageAccessToken": "EAAPM1WOEDw8BAJ7VQz57sgukfV3XIzGjupzhYvZCabWRUd7FfjUiwD96Q5f3c56c5wchnajFvGFZAHd1gD6mCXZBmo34U0BaShuvYthnsFmwcBOkdL8qGRDHxkiuACUtCk84KmdhE40lrZBLNDPNC1GtiPU25W3cojNdSu7XOQZDZD",
+    "validationToken": "stonybrook_bot",
+    "serverURL": "https://sukhwa-bot.herokuapp.com/"
 }
